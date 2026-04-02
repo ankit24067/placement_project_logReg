@@ -1,11 +1,12 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import pickle
+import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
+from mlxtend.plotting import plot_decision_regions
 
 # -------------------------------
 # Page Config
@@ -41,22 +42,25 @@ def train_model(df):
     X = df.iloc[:, 0:2]
     y = df.iloc[:, -1]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.1, random_state=42
+    )
 
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
     model = LogisticRegression()
     model.fit(X_train_scaled, y_train)
 
-    return model, scaler
+    return model, scaler, X_train_scaled, y_train
 
-model, scaler = train_model(df)
+model, scaler, X_train_scaled, y_train = train_model(df)
 
 # -------------------------------
 # Sidebar Inputs
 # -------------------------------
-st.sidebar.header("Enter Student Details")
+st.sidebar.header("📥 Enter Student Details")
 
 cgpa = st.sidebar.slider("CGPA", 0.0, 10.0, 6.0)
 iq = st.sidebar.slider("IQ", 50, 200, 100)
@@ -76,7 +80,7 @@ if st.sidebar.button("Predict Placement 🚀"):
         st.error("❌ Student is NOT likely to be placed")
 
 # -------------------------------
-# Data Visualization
+# Visualization Section
 # -------------------------------
 st.subheader("📊 Dataset Visualization")
 
@@ -84,7 +88,27 @@ st.write("Scatter Plot of CGPA vs IQ")
 st.scatter_chart(df, x="cgpa", y="iq", color="placement")
 
 # -------------------------------
-# Show Dataset
+# Decision Boundary Plot
+# -------------------------------
+st.subheader("🧠 Decision Boundary (Model Understanding)")
+
+fig = plt.figure()
+
+plot_decision_regions(
+    X_train_scaled,
+    y_train.values,
+    clf=model,
+    legend=2
+)
+
+plt.xlabel("CGPA (scaled)")
+plt.ylabel("IQ (scaled)")
+plt.title("Decision Boundary - Logistic Regression")
+
+st.pyplot(fig)
+
+# -------------------------------
+# Show Raw Data
 # -------------------------------
 if st.checkbox("Show Raw Data"):
     st.write(df.head())
